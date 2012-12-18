@@ -50,6 +50,11 @@ var Sprites = (function() {
       }
 
       data.url = GameFrame.settings.sprite_url_override || data.url;
+      if ("stand_alone" in window && window.stand_alone &&
+          "stand_alone_base_url" in window)
+      {
+        data.url = window.stand_alone_base_url + data.url;
+      }
 
       if (spritedictionary[id] === undefined) {
         if (data.left === undefined) {
