@@ -15,6 +15,51 @@
 var PerfTest = (function() {
     var in_speedtests = ("SpeedTests" in window);
 
+    // from https://gist.github.com/raw/3794226/17a1e053341567b747bffb84d04af9b043fa794a/has3d.js
+    function has_3d_transforms(){
+      var el = document.createElement('p'),
+      has3d,
+      transforms = {
+        'webkitTransform':'-webkit-transform',
+        'OTransform':'-o-transform',
+        'msTransform':'-ms-transform',
+        'MozTransform':'-moz-transform',
+        'transform':'transform'
+      };
+  
+      // Add it to the body to get the computed style
+      document.body.insertBefore(el, null);
+  
+      for (var t in transforms) {
+        console.log(t);
+        if (el.style[t] !== undefined) {
+          el.style[t] = 'translate3d(1px,1px,1px)';
+          has3d = window.getComputedStyle(el).getPropertyValue(transforms[t]);
+          console.log(has3d);
+          break;
+        }
+      }
+  
+      document.body.removeChild(el);
+  
+      return (has3d !== undefined && has3d.length > 0 && has3d !== "none");
+    }
+  
+    function has_css_transitions() {
+      var b = document.body || document.documentElement;
+      var s = b.style;
+      var p = 'transition';
+      if(typeof s[p] == 'string') {return true; }
+  
+      // Tests for vendor specific prop
+      v = ['Moz', 'Webkit', 'Khtml', 'O', 'ms'],
+      p = p.charAt(0).toUpperCase() + p.substr(1);
+      for(var i=0; i<v.length; i++) {
+        if(typeof s[v[i] + p] == 'string') { return true; }
+      }
+      return false;
+    }
+
     var ninja_sprites = [
       'ninja1',
       'ninja2',
@@ -384,7 +429,9 @@ var PerfTest = (function() {
           name += ts.sprite_sheets ? "s" : "";
           name += ts.int_snap ? "i" : "";
           name += ts.webgl_blended_canvas ? "b" : "";
-          name += ts.canvas_background ? "k" : "";
+          name += ts.canvas_background ? "c" : "";
+          name += ts.css_transitions ? "t" : "";
+          name += ts.css_keyframe ? "k" : "";
           name += ts.transform3d ? "3" : "";
           name += ts.update_existing ? "u" : "";
           name += ts.use_div_background ? "d" : "";
@@ -404,8 +451,8 @@ var PerfTest = (function() {
             var res = data.details[target][sp];
             for (var ti = 0; ti < res.length; ++ti) {
               var t = data.details[target][sp][ti];
-              console.log("subresult", make_st_name(t.test), t.score);
-              //SpeedTests.recordSubResult(make_st_name(t.test), t.score);
+              console.log("result", make_st_name(t.test), t.score);
+              SpeedTests.recordSubResult(make_st_name(t.test), t.score);
             }
           }
         }
@@ -429,35 +476,45 @@ var PerfTest = (function() {
       var spar = {'aa':1, 'rot':1};
       var vp = 'normal';
       var bg = 'world';
-      var is = true;
+      var snap = true;
       var target_fps = 60;
 
+      // we should add these back at some point, but we don't care for now
+      var has3d = has_3d_transforms();
+      var hastransitions = has_css_transitions();
+
+      // for both 'rot' and 'aa' sprite types
       for (var sp in spar) {
-        for (var t3=0;t3<2;t3++) {
-          if (t3) {
-            if (Browser.browser == Browser.IE || Browser.browser == Browser.IE9 || Browser.browser == Browser.FIREFOX || Browser.browser == Browser.OPERA) {
-              continue;
-            }
+        // basic HTML stuff; loop twice, once without 3d transforms and once with
+        for (var t3 = 0; t3 < (has3d ? 2 : 1); t3++) {
+          // basic HTML test
+          addTest({viewport: vp, settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true, css_transitions: false, sprite_sheets: false, css_keyframe: false, int_snap: snap, transform3d: t3 ? true : false}, tfps: target_fps, background: bg, sprites: sp });
+
+          if (hastransitions) {
+            // once with just sprite_sheets = false, css_keyframe = false
+            addTest({viewport: vp, settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true, css_transitions: true, sprite_sheets: false, css_keyframe: false, int_snap: snap, transform3d: t3 ? true : false}, tfps: target_fps, background: bg, sprites: sp });
+
+            // and once with sprite_sheets = true, css_keyframe = true
+            addTest({viewport: vp, settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true,  css_transitions: true, sprite_sheets: true, css_keyframe: true, int_snap: snap, transform3d: t3 ? true : false}, tfps: target_fps, background: bg, sprites: sp });
           }
-          if (Browser.browser == Browser.CHROME || Browser.browser == Browser.WEBKIT) {
-            if (Browser.ios) {
-              addTest({viewport: vp, settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true,  css_transitions: true, sprite_sheets: true, css_keyframe: true, int_snap: is ? true : false, transform3d: t3 ? true : false}, tfps: target_fps, background: bg, sprites: sp });
-            }
-            addTest({viewport: vp, settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true, css_transitions: true, sprite_sheets: false, css_keyframe: false, int_snap: is ? true : false, transform3d: t3 ? true : false}, tfps: target_fps, background: bg, sprites: sp });
-          }
-          addTest({viewport: vp, settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true, css_transitions: false, sprite_sheets: false, css_keyframe: false, int_snap: is ? true : false, transform3d: t3 ? true : false}, tfps: target_fps, background: bg, sprites: sp });
         }
+
+        // canvas 2d
         if (!!document.createElement('canvas').getContext) {
-          addTest({viewport: vp, settings: {render_mode: GameFrame.CANVAS_ONLY, canvas_background: false, sprite_sheets: false, int_snap: is ? true : false}, tfps: target_fps, background: bg, sprites: sp });
-          addTest({viewport: vp, settings: {render_mode: GameFrame.CANVAS_ONLY, canvas_background: true, sprite_sheets: false, int_snap: is ? true : false}, tfps: target_fps, background: bg, sprites: sp });
+          addTest({viewport: vp, settings: {render_mode: GameFrame.CANVAS_ONLY, canvas_background: false, sprite_sheets: false, int_snap: snap}, tfps: target_fps, background: bg, sprites: sp });
+          addTest({viewport: vp, settings: {render_mode: GameFrame.CANVAS_ONLY, canvas_background: true, sprite_sheets: false, int_snap: snap}, tfps: target_fps, background: bg, sprites: sp });
         }
-        if (!Browser.mobile && WebGLUtil.isSupported()) {
+
+        // webgl
+        if (WebGLUtil.isSupported()) {
           addTest({viewport: vp, settings: {render_mode: GameFrame.WEBGL, webgl_blended_canvas: false, webgl_batch_sprites: 0, sprite_sheets: false, int_snap: false}, tfps: target_fps, background: bg, sprites: sp });
           addTest({viewport: vp, settings: {render_mode: GameFrame.WEBGL, webgl_blended_canvas: false, webgl_batch_sprites: 0, sprite_sheets: true, int_snap: false}, tfps: target_fps, background: bg, sprites: sp });
           addTest({viewport: vp, settings: {render_mode: GameFrame.WEBGL, webgl_blended_canvas: false, webgl_batch_sprites: 500, sprite_sheets: true, int_snap: false}, tfps: target_fps, background: bg, sprites: sp });
           addTest({viewport: vp, settings: {render_mode: GameFrame.WEBGL, webgl_blended_canvas: false, webgl_batch_sprites: 5000, sprite_sheets: true, int_snap: false}, tfps: target_fps, background: bg, sprites: sp });
         }
       }
+
+      // sort the tests in a random order
       tests.sort(function(a,b) {return Math.random()-0.5;});
     }
 
