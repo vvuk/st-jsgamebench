@@ -15,21 +15,36 @@
 var Tick = (function() {
     var Tick = {};
     Tick.frames = 0;
-    Tick.slowframe = 0
+    Tick.slowframe = 0;
     var lastfps = 1;
-    var lasttimestamp = (new Date).getTime();
+
+    if (window.performance && window.performance.now) {
+      function time_now() {
+        return window.performance.now();
+      }
+    } else if (Date.now) {
+      function time_now() {
+        return Date.now();
+      }
+    } else {
+      function time_now() {
+        return (new Date).getTime();
+      }
+    }
+
+    var lasttimestamp = time_now();
 
     function tick() {
       Tick.frames++;
       Tick.last = Tick.current;
-      Tick.current = (new Date).getTime();
+      Tick.current = time_now();
       Tick.delta = Tick.current - Tick.last;
       if (Tick.delta > 250)
         Tick.slowframe = true;
       else
         Tick.slowframe = false;
-      if (Tick.frames % 10 == 0) {
-        lastfps = parseInt(10000 / (Tick.current - lasttimestamp));
+      if (Tick.frames % 30 == 0) {
+        lastfps = Math.floor(30000 / (Tick.current - lasttimestamp));
         lasttimestamp = Tick.current;
       }
       if (!GameFrame.settings.hidefps) {
@@ -54,11 +69,11 @@ var Tick = (function() {
     function reset() {
       lastfps = 0;
       Tick.frames = 0;
-      Tick.start = Tick.current = (new Date).getTime();
+      Tick.start = Tick.current = time_now();
     }
 
     Tick.delta = 0;
-    Tick.start = Tick.current = (new Date).getTime();
+    Tick.start = Tick.current = time_now();
     Tick.last = Tick.current - Tick.delta;
 
     Tick.fps = fps;
