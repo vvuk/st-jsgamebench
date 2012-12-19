@@ -50,11 +50,11 @@ var Tick = (function() {
       if (!GameFrame.settings.hidefps) {
         if (typeof(Benchmark) !== 'undefined' && Benchmark !== undefined && Benchmark.name) {
           var name = Benchmark.name;
-          UI.addHTML(null, 'fps', {uiclass: 'testype ui_html', pos: [5, 55], resetlast: true, markup: 'fps: ' + lastfps + '<br />' +
-                name.render_mode + ':' + name.sprites + ':' + name.render_path + '<br />' +
-                Browser.winsize[0] + 'x' + Browser.winsize[1] + '<br />' +
-                GameFrame.getViewport().dstyle.width + 'x' + GameFrame.getViewport().dstyle.height + '<br />' +
-                Benchmark.count()});
+          UI.addHTML(null, 'fps', {uiclass: 'testype ui_html', pos: [100, 0], resetlast: true, markup:
+                                   Browser.winsize[0] + 'x' + Browser.winsize[1] + ' ' +
+                                   GameFrame.getViewport().dstyle.width + 'x' + GameFrame.getViewport().dstyle.height +
+                                   '-- count: ' + Benchmark.count() + ' fps: ' + lastfps + '<br />' +
+                                   name.render_mode + ':' + name.sprites + ':' + name.render_path});
         } else {
           UI.addHTML(null, 'fps', {uiclass: 'testype ui_html', pos: [5, 55], resetlast: true, markup: 'fps: ' + lastfps + '<br />' +
                 Browser.winsize[0] + 'x' + Browser.winsize[1] + "<br />" + Tick.frames});
