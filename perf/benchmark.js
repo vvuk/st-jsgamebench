@@ -23,7 +23,11 @@ var Benchmark = (function() {
     var desc;
     var tid;
     var nodel;
-    var targetfps;
+    var targetfps, targetfps_max, targetfps_min;
+    var adjustment, hit_slow;
+    var goodcount, hit_good;
+    var last_slow;
+    var toofast, tooslow;
     var timenear;
     var testover;
     var slowframes;
@@ -33,9 +37,13 @@ var Benchmark = (function() {
     var Benchmark = {};
 
     function setup(criteria) {
+      // functions to increase/decrease the amount of things drawn
       inc = criteria.inc;
       dec = criteria.dec;
+
+      // how many times to call incremenet/decrement when we need to increase/decrease
       num = criteria.num || num;
+
       demo = criteria.demo || null;
       tid = criteria.tid;
       w = criteria.w || Browser.winsize[0];
@@ -45,50 +53,131 @@ var Benchmark = (function() {
       frame = 0;
       backoff = 0;
       slowframes = 0;
-      targetfps = criteria.tfps ? criteria.tfps : 30;
+      targetfps = criteria.tfps ? criteria.tfps : 60;
+      adjustment = 0, hit_slow = false;
+      goodcount = 0, hit_good = false;
+
+      // we want to be within 5% of the target fps
+      targetfps_max = targetfps + 1;
+      targetfps_min = targetfps - 1;
+
+      console.log("target FPS:", targetfps);
       runtest = true;
       Benchmark.name = tid;
     }
 
+    function setCount(newCount) {
+      newCount = Math.floor(newCount);
+      if (newCount <= 0)
+        newCount = 1;
+
+      if (newCount == count)
+        return;
+
+      if (newCount > count) {
+        while (count != newCount) {
+          inc(count++, w, h);
+        }
+      } else {
+        while (count != newCount) {
+          dec(--count);
+        }
+      }
+
+      console.log("setCount", count);
+    }
+
     function tick() {
-      if (runtest && inc && dec && (frame++ > 2)) {
-        frame = 0;
-        var fps = Tick.fps();
-        if (Tick.slowframe) {
-          slowframes++;
-          if (!demo && slowframes == 5) {
-            PerfTest.done(tid, 0);
-          }
-          for (var i = 0; i < num; i++) {
-            if (count > 1)
-              dec(--count);
-          }
-          if (num > 1)
-            num--;
-          else
-            backoff++;
+      if (!(runtest && inc && dec))
+        return;
+
+      if (++frame % targetfps != 0)
+        return;
+
+      var fps = Tick.fps();
+
+      if (Tick.slowFrame || count == 0) {
+        // this is too slow
+        slowframes++;
+
+        if (!demo && slowframes == 5) {
+          PerfTest.done(tid, 0);
+          return;
+        }
+
+        setCount(count / 2);
+        return;
+      }
+
+      // If we already slowed down, and if the delta between
+      // the last slow count and our current count is less than 1%...
+      // If we're within our target range, flag it as good. 
+      // With enough good results, we're done.
+      if (hit_slow &&
+          Math.abs(count - last_slow) < count * 0.01 &&
+          fps >= targetfps_min &&
+          fps <= targetfps_max)
+      {
+        console.log("good", fps, count);
+        if (goodcount++ > 2) {
+          runtest = false;
+          PerfTest.done(tid, count);
+        }
+
+        return;
+      }
+
+      // no good!
+      goodcount = 0;
+
+      function updateAdjustment() {
+        // always change at least 1% of the total count at once,
+        // with a minimum of 1; otherwise use half of the previous adjustment
+        // value
+        adjustment = Math.floor(Math.max(count * 0.01, adjustment / 2));
+        if (adjustment == 0)
+          adjustment = 1;
+        console.log("updateAdjustment", adjustment);
+      }
+
+      if (fps < (hit_slow ? targetfps_min : targetfps_min*0.9)) {
+        console.log("slow, fps", fps, "hit_slow", hit_slow, "targetfps_min", targetfps_min);
+        toofast = false;
+        if (tooslow && adjustment > 0) {
+          // save the last count when we were slow
+          last_slow = count;
+
+          updateAdjustment();
+          setCount(count - adjustment);
+
+          hit_slow = true;
         } else {
-          if (!count || (fps >= targetfps)) {
-            for (var i = 0; i < num; i++) {
-              inc(count++, w, h);
-            }
-          } else if (fps < targetfps) {
-            if (!demo && backoff > 20) {
-              runtest = false;
-              PerfTest.done(tid, count);
-            } else {
-              if (!nodel) {
-                for (var i = 0; i < num; i++) {
-                  if (count > 1)
-                    dec(--count);
-                }
-                if (num > 1)
-                  num--;
-                else
-                  backoff++;
-              }
-            }
+          // Start slowing down by a minimum of 1% of the count, up to
+          // count / 4 -- which will be equal to 1/2 of the amount we
+          // increased count by when we thought we were fast.
+          // So... 1 2 4 8 16 32 64 -> adjustment to 48
+
+          if (!hit_slow) {
+            // initialize it to the right range to hunt in
+            adjustment = count / 2;
           }
+
+          tooslow = true;
+        }
+      } else if (hit_slow) {
+        console.log("fast after slow");
+        tooslow = false;
+
+        // this will always lower the adjustment
+        updateAdjustment();
+        setCount(count + adjustment);
+      } else {
+        console.log("fast");
+        tooslow = false;
+        if (toofast) {
+          setCount(count * 2);
+        } else {
+          toofast = true;
         }
       }
     }

@@ -21,12 +21,12 @@ var FBmark = (function() {
 
     function addScore(settings, score) {
       if (scores[settings.render_mode][settings.sprites]) {
-        scores[settings.render_mode][settings.sprites].push({score: score, path: settings.render_path});
+        scores[settings.render_mode][settings.sprites].push({score: score, path: settings.render_path, test: settings.test});
         scores[settings.render_mode][settings.sprites].sort(function(a,b) {
             return b.score - a.score;
           });
       } else {
-        scores[settings.render_mode][settings.sprites] = [{score: score, path: settings.render_path}];
+        scores[settings.render_mode][settings.sprites] = [{score: score, path: settings.render_path, test: settings.test}];
       }
     }
 

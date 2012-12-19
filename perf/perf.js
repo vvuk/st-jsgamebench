@@ -13,6 +13,11 @@
 // under the License.
 
 var Perf = (function() {
+    var in_speedtests = ("SpeedTests" in window);
+    if (in_speedtests) {
+      SpeedTests.init("jsgamebench");
+    }
+
     function resetSession() {
       client_user.unique_id = 0;
     }
@@ -51,7 +56,7 @@ var Perf = (function() {
                 stats += '&lt;canvas&gt;';
                 break;
               case 'html':
-                stats += '&lt;div&gt;'
+                stats += '&lt;div&gt;';
                   break;
               case 'webgl':
                 stats += 'webgl';
@@ -256,20 +261,19 @@ var Perf = (function() {
       UI.del('buttons');
       UI.del('perf');
       var sprite = Browser.mobile ? 'aahalf' : 'aa';
-      var fps = Browser.mobile ? 20 : 30;
+      var fps = 60;
 
-      for (var i=0;i<30;i++) {
+      for (var i=0;i<3;i++) {
         PerfTest.addTest(
           {
             viewport: 'fluid',
-              settings:
-            {
+            settings: {
               render_mode: GameFrame.CANVAS_ONLY,
-                sprite_sheets: false, int_snap: true,multi:i+1,
-                canvas_background: false
-                },
-              tfps: fps, background: 'world', sprites: sprite, demo: false
-              });
+              sprite_sheets: false, int_snap: true, multi: i == 0 ? 1 : i*10,
+              canvas_background: false
+            },
+            tfps: fps, background: 'world', sprites: sprite, demo: false
+          });
       }
       PerfTest.doAll();
     }
@@ -278,20 +282,19 @@ var Perf = (function() {
       UI.del('buttons');
       UI.del('perf');
       var sprite = Browser.mobile ? 'aahalf' : 'aa';
-      var fps = Browser.mobile ? 20 : 30;
+      var fps = 60;
 
       PerfTest.addTest(
         {
           viewport: 'fluid',
-            settings:
-          {
+          settings: {
             render_mode: GameFrame.HTML_ONLY,
-              sprite_sheets: false, int_snap: true,
-              update_existing: true, use_div_background: true, multi_img: false,
-              css_transitions: false, css_keyframe: false, transform3d: Browser.mobile ? true : false
-              },
-            tfps: fps, background: 'world', sprites: sprite, demo: false
-            });
+            sprite_sheets: false, int_snap: true,
+            update_existing: true, use_div_background: true, multi_img: false,
+            css_transitions: false, css_keyframe: false, transform3d: Browser.mobile ? true : false
+          },
+          tfps: fps, background: 'world', sprites: sprite, demo: false
+        });
       PerfTest.doAll();
     }
 
@@ -300,21 +303,21 @@ var Perf = (function() {
       UI.del('buttons');
       UI.del('perf');
       var sprite = Browser.mobile ? 'aahalf' : 'aa';
-      var fps = Browser.mobile ? 20 : 30;
+      var fps = 60;
 
       for (var i=0;i<20;i++) {
         PerfTest.addTest(
           {
             viewport: 'fluid',
-              settings:
+            settings:
             {
               render_mode: GameFrame.HTML_ONLY,
-                sprite_sheets: false, int_snap: true, multi: 1+i,
-                update_existing: true, use_div_background: true, multi_img: false,
-                css_transitions: false, css_keyframe: false, transform3d: Browser.mobile ? true : false
-          },
-              tfps: fps, background: 'world', sprites: sprite, demo: false
-              });
+              sprite_sheets: false, int_snap: true, multi: i == 0 ? 1 : i*5,
+              update_existing: true, use_div_background: true, multi_img: false,
+              css_transitions: false, css_keyframe: false, transform3d: Browser.mobile ? true : false
+            },
+            tfps: fps, background: 'world', sprites: sprite, demo: false
+          });
       }
       PerfTest.doAll();
     }
@@ -325,15 +328,14 @@ var Perf = (function() {
       PerfTest.addTest(
         {
           viewport: 'fluid',
-          settings:
-          {
-              render_mode: GameFrame.WEBGL,
-              sprite_sheets: true, int_snap: false,
-              //disable_sprite_anim: true, sprite_url_override: 'images/white.png', sprite_scale: 0.01,
-              disable_world_elements: true,
-              webgl_debug: false, webgl_blended_canvas: false, webgl_batch_sprites: 5000
+          settings: {
+            render_mode: GameFrame.WEBGL,
+            sprite_sheets: true, int_snap: false,
+            //disable_sprite_anim: true, sprite_url_override: 'images/white.png', sprite_scale: 0.01,
+            disable_world_elements: true,
+            webgl_debug: false, webgl_blended_canvas: false, webgl_batch_sprites: 5000
           },
-          tfps: 30, background: 'world', sprites: 'rot', demo: true
+          tfps: 60, background: 'world', sprites: 'rot', demo: true
         });
       PerfTest.doAll();
     }
@@ -344,15 +346,14 @@ var Perf = (function() {
       PerfTest.addTest(
         {
           viewport: 'fluid',
-          settings:
-          {
-              render_mode: GameFrame.WEBGL,
-              sprite_sheets: true, int_snap: false,
-              //disable_sprite_anim: true, sprite_url_override: 'images/white.png', sprite_scale: 0.01,
-              disable_world_elements: true,
-              webgl_debug: false, webgl_blended_canvas: false, webgl_batch_sprites: 500
+          settings: {
+            render_mode: GameFrame.WEBGL,
+            sprite_sheets: true, int_snap: false,
+            //disable_sprite_anim: true, sprite_url_override: 'images/white.png', sprite_scale: 0.01,
+            disable_world_elements: true,
+            webgl_debug: false, webgl_blended_canvas: false, webgl_batch_sprites: 500
           },
-          tfps: 30, background: 'world', sprites: 'rot', demo: true
+          tfps: 60, background: 'world', sprites: 'rot', demo: true
         });
       PerfTest.doAll();
     }
@@ -360,7 +361,15 @@ var Perf = (function() {
     function iDemo() {
       UI.del('buttons');
       UI.del('perf');
-      PerfTest.addTest({viewport: 'fluid', settings: {render_mode: GameFrame.HTML_ONLY, sprite_sheets: true, transform3d:true}, tfps: 20, background: 'world', sprites: 'igob', demo: true });
+      PerfTest.addTest(
+        {
+          viewport: 'fluid',
+          settings: {
+            render_mode: GameFrame.HTML_ONLY,
+            sprite_sheets: true, transform3d:true
+          },
+          tfps: 60, background: 'world', sprites: 'igob', demo: true
+        });
       PerfTest.doAll();
     }
 
@@ -374,14 +383,13 @@ var Perf = (function() {
       PerfTest.addTest(
         {
           viewport: 'fluid',
-          settings:
-          {
+          settings: {
             render_mode: GameFrame.HTML_ONLY,
             sprite_sheets: false, int_snap: true,
             update_existing: true, use_div_background: true,
             css_transitions: false, css_keyframe: false, transform3d: false
           },
-          tfps: 30, background: 'world', sprites: sprite, demo: true
+          tfps: 60, background: 'world', sprites: sprite, demo: true
         });
       PerfTest.doAll();
     }
@@ -400,7 +408,7 @@ var Perf = (function() {
       UI.del('buttons');
       UI.del('perf');
 
-      Game.init({viewport: 'fluid', settings: {render_mode: GameFrame.CANVAS_ONLY, canvas_background: false}, tfps: 30, background: 'world', sprites: 'cute', demo: true, hack: true });
+      Game.init({viewport: 'fluid', settings: {render_mode: GameFrame.CANVAS_ONLY, canvas_background: false}, tfps: 60, background: 'world', sprites: 'cute', demo: true, hack: true });
 
       PerfTest.doAll();
     }
@@ -409,7 +417,7 @@ var Perf = (function() {
       UI.del('buttons');
       UI.del('perf');
 
-      Game.init({viewport: 'fluid_width', settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true, css_transitions: false, css_keyframe: false, sprite_sheets: false, int_snap: true, transform3d:false}, tfps: 30, background: 'world', sprites: 'cute', demo: true, hack: true });
+      Game.init({viewport: 'fluid_width', settings: {render_mode: GameFrame.HTML_ONLY, update_existing: true, use_div_background: true, css_transitions: false, css_keyframe: false, sprite_sheets: false, int_snap: true, transform3d:false}, tfps: 60, background: 'world', sprites: 'cute', demo: true, hack: true });
 
       PerfTest.doAll();
     }
@@ -472,6 +480,10 @@ var Perf = (function() {
       ClientCmd.install('showdetails', showDetails);
       ClientCmd.install('perfdisplay', perfDisplay);
       Input.hookEvents('gamebody');
+
+      if (in_speedtests && !SpeedTests.config.testing) {
+        setTimeout(startPerfTest, 1000);
+      }
     }
 
     function setup() {
