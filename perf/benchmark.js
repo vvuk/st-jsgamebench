@@ -32,6 +32,7 @@ var Benchmark = (function() {
     var testover;
     var slowframes;
     var demo;
+    var starttime;
     var runtest = false;
 
     var Benchmark = {};
@@ -56,12 +57,22 @@ var Benchmark = (function() {
       targetfps = criteria.tfps ? criteria.tfps : 60;
       adjustment = 0, hit_slow = false;
       goodcount = 0, hit_good = false;
+      starttime = (new Date()).getTime();
 
       // we want to be within 5% of the target fps
       targetfps_max = targetfps + 1;
       targetfps_min = targetfps - 1;
 
-      console.log("target FPS:", targetfps);
+      // .. unless we're on Firefox < 20.0, where rAF sucks
+      if ("version" in window &&
+          window.version[0].indexOf("firefox") == 0 &&
+          parseFloat(window.version[1]) < 20.0)
+      {
+        targetfps_max = targetfps * 1.05;
+        targetfps_min = targetfps * 0.95;
+      }
+
+      //console.log("target FPS:", targetfps);
       runtest = true;
       Benchmark.name = tid;
     }
@@ -84,7 +95,7 @@ var Benchmark = (function() {
         }
       }
 
-      console.log("setCount", count);
+      //console.log("setCount", count);
     }
 
     function tick() {
@@ -93,6 +104,14 @@ var Benchmark = (function() {
 
       if (++frame % targetfps != 0)
         return;
+
+      var elapsed = (new Date()).getTime() - starttime;
+      if (!demo && elapsed > 60*2*1000) {
+        // if we fail to converge in 2 minutes, abort
+        runtest = false;
+        PerfTest.done(tid, 0);
+        return;
+      }
 
       var fps = Tick.fps();
 
@@ -118,7 +137,7 @@ var Benchmark = (function() {
           fps >= targetfps_min &&
           fps <= targetfps_max)
       {
-        console.log("good", fps, count);
+        //console.log("good", fps, count);
         if (goodcount++ > 2) {
           runtest = false;
           PerfTest.done(tid, count);
@@ -137,11 +156,11 @@ var Benchmark = (function() {
         adjustment = Math.floor(Math.max(count * 0.01, adjustment / 2));
         if (adjustment == 0)
           adjustment = 1;
-        console.log("updateAdjustment", adjustment);
+        //console.log("updateAdjustment", adjustment);
       }
 
       if (fps < (hit_slow ? targetfps_min : targetfps_min*0.9)) {
-        console.log("slow, fps", fps, "hit_slow", hit_slow, "targetfps_min", targetfps_min);
+        //console.log("slow, fps", fps, "hit_slow", hit_slow, "targetfps_min", targetfps_min);
         toofast = false;
         if (tooslow && adjustment > 0) {
           // save the last count when we were slow
@@ -165,14 +184,14 @@ var Benchmark = (function() {
           tooslow = true;
         }
       } else if (hit_slow) {
-        console.log("fast after slow");
+        //console.log("fast after slow");
         tooslow = false;
 
         // this will always lower the adjustment
         updateAdjustment();
         setCount(count + adjustment);
       } else {
-        console.log("fast");
+        //console.log("fast");
         tooslow = false;
         if (toofast) {
           setCount(count * 2);
