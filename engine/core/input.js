@@ -1,4 +1,4 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+
 
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -185,6 +185,9 @@ var Input = (function() {
     }
 
     function hookEvents(eid) {
+      if (window['stand_alone'])
+        return;
+
       var touch = Browser.mobile;
 
       var el = document.getElementById(eid);
